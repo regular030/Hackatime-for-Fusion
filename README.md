@@ -1,7 +1,7 @@
-# Wakatime Add-in for Fusion 360
-This add-in integrates Wakatime with Autodesk Fusion 360 to help track your design activity. Follow the steps below to install and use the add-in. ATM only tested in Windows, it should work on Mac, not tested.
+# Wakatime Add-in for Fusion
+This add-in integrates Wakatime with Autodesk Fusion to help track your design activity. Follow the steps below to install and use the add-in. ATM only tested in Windows, it should work on Mac, not tested.
 
-## How to Use the Wakatime Add-in for Fusion 360
+## How to Use the Wakatime Add-in for Fusion
 
 ### 1. Download the Code
 Download the ZIP file containing the add-in code.
@@ -13,11 +13,11 @@ You can navigate there directly via **File Explorer**.
 The folder structure should look like this:  
 `AddIns > Wakatime for Fusion > (files)`
 
-### 3. Launch Fusion 360
-Open Autodesk **Fusion 360**.
+### 3. Launch Fusion
+Open Autodesk **Fusion**.
 
 ### 4. Run the Add-in
-Press `Shift + S` to open the **Scripts and Add-ins** menu in Fusion 360.  
+Press `Shift + S` to open the **Scripts and Add-ins** menu in Fusion.  
 In the menu, go to the **Add-ins** tab.  
 You should see **Wakatime for Fusion** listed there.  
 Check mark the **Run on Start**
@@ -30,6 +30,6 @@ If you see a different message or encounter an issue, don't hesitate to get in t
 
 ## Troubleshooting
 If you encounter any issues during the installation or while using the add-in, check the following:
-- Ensure that **Fusion 360** is running with administrator privileges.
+- Ensure that **Fusion** is running with administrator privileges.
 - Verify that you have **Hackatime** installed before running the Wakatime add-in.
 - If the add-in doesn't work as expected, please reach out on Slack and give me details of the issue.
