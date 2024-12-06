@@ -16,7 +16,8 @@ The folder structure should look like this:
 ### 3. Install Dependencies
 Open **Windows PowerShell** and run the following command (ensure the quotation marks are included):  
 
-"$($env:LOCALAPPDATA)\Autodesk\webdeploy\production\13b1dce62fc3204647ade625f7b4cb3f8d542a09\Python\python.exe" -m pip install requests
+`& "$($env:LOCALAPPDATA)\Autodesk\webdeploy\production\13b1dce62fc3204647ade625f7b4cb3f8d542a09\Python\python.exe" -m pip install requests`
+
 
 This will install the necessary dependencies for the add-in to function properly.
 
