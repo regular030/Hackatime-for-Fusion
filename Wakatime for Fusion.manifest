@@ -1,0 +1,13 @@
+{
+	"autodeskProduct":	"Fusion",
+	"type":	"addin",
+	"id":	"7b315e57-7705-4b1d-aa88-b81ac1465197",
+	"author":	"Kunshpreet",
+	"description":	{
+		"":	"Wakatime for Fusion"
+	},
+	"version":	"V1.00",
+	"runOnStartup":	false,
+	"supportedOS":	"windows|mac",
+	"editEnabled":	true
+}
