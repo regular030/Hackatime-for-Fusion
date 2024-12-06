@@ -1,10 +1,10 @@
-# & "$($env:LOCALAPPDATA)\Autodesk\webdeploy\production\13b1dce62fc3204647ade625f7b4cb3f8d542a09\Python\python.exe" -m pip install requests
 import os
 import time
-import requests
+import http.client
 import adsk.core, adsk.fusion, adsk.cam, traceback
 from configparser import ConfigParser
 from platform import uname
+import json
 
 app = adsk.core.Application.get()
 ui = app.userInterface
@@ -13,7 +13,8 @@ class WakaTimeManager:
     def __init__(self):
         # Load API key from the config file
         self.api_key = self.load_api_key()
-        self.api_url = "https://waka.hackclub.com/api/heartbeats"  # Custom API URL from your .wakatime.cfg
+        self.api_url = "waka.hackclub.com"  # API URL (without https://)
+        self.api_path = "/api/heartbeats"  # Path for heartbeats
         self.is_tracking = False
         self.document_opened_handler = None
         self.document_saved_handler = None
@@ -136,7 +137,7 @@ class WakaTimeManager:
             "category": "test_start",
             "language": language,
             "Editor": editor,
-            "operating_system": host.system
+            "operating_system": uname().system
         }
 
         headers = {
@@ -146,12 +147,19 @@ class WakaTimeManager:
         print(f"Preparing to send test heartbeat: {payload}")
 
         try:
-            response = requests.post(self.api_url, json=payload, headers=headers)
-            if response.status_code != 201:
-                print(f"Failed to send test heartbeat: {response.text}")
+            conn = http.client.HTTPSConnection(self.api_url)
+            headers = {
+                "Authorization": f"Basic {self.api_key}",
+                "Content-Type": "application/json"
+            }
+            conn.request("POST", self.api_path, body=json.dumps(payload), headers=headers)
+            response = conn.getresponse()
+            if response.status != 201:
+                print(f"Failed to send test heartbeat: {response.read().decode()}")
             else:
-                print(f"Test heartbeat sent successfully: {response.status_code}")
-        except requests.RequestException as e:
+                print(f"Test heartbeat sent successfully: {response.status}")
+            conn.close()
+        except Exception as e:
             print(f"Error sending test heartbeat: {str(e)}")
 
     def on_file_opened(self, args):
@@ -201,12 +209,16 @@ class WakaTimeManager:
 
         try:
             # Log the available attributes in args to help debug
-            print(f"Event Args: {dir(args)}")
 
             # Check if 'commandDefinition' exists
             if hasattr(args, 'commandDefinition'):
                 command_definition = args.commandDefinition
                 print(f"Command Created: {command_definition.name}")  # Log command name
+
+                # Skip sending heartbeat if the command is 'pan'
+                if command_definition.name.lower() == "pan":
+                    print("Pan command detected. Skipping heartbeat.")
+                    return
 
                 project_name = "Fusion 360"  # Get the project name
                 entity_name = command_definition.name  # Changed to entity_name for consistency
@@ -233,47 +245,38 @@ class WakaTimeManager:
             project_name = "Unknown Project"
         return project_name
 
-    def send_heartbeat(self, project_name, entity_name, action_type, extra_info=None):
-        """Send activity data to WakaTime."""
-        host = uname()
-        language = "Fusion 360"
-        editor = "Fusion 360"
-        active_document = app.activeDocument
-        
-        #find current file and project
-        if active_document is None:
-            print("No active document found.")
-            return
-        file_name = active_document.name
-        project_name = self.get_project_name(active_document)
-        
-        print(f"Preparing to send heartbeat: {{'time': {time.time()}, 'entity': '{file_name}', 'project': '{project_name}', 'type': 'file', 'category': '{action_type}', 'language': '{language}', 'Editor': '{editor}', 'os': '{host.system}'}}")
 
+    def send_heartbeat(self, project_name, entity_name, action_type, extra_info=None):
+        """Send heartbeat event to WakaTime API."""
         payload = {
             "time": time.time(),
-            "entity": file_name,
+            "entity": entity_name,
             "project": project_name,
-            "type": "file",
+            "type": action_type,
             "category": action_type,
-            "Language": language,
-            "Editor": editor,
-            "operating_system": host.system
+            "language": "Fusion 360",
+            "Editor": "Fusion 360",
+            "operating_system": uname().system
         }
 
         if extra_info:
             payload.update(extra_info)
 
         headers = {
-            "Authorization": f"Basic {self.api_key}"
+            "Authorization": f"Basic {self.api_key}",
+            "Content-Type": "application/json"
         }
 
         try:
-            response = requests.post(self.api_url, json=payload, headers=headers)
-            if response.status_code != 201:
-                print(f"Failed to send heartbeat: {response.text}")
+            conn = http.client.HTTPSConnection(self.api_url)
+            conn.request("POST", self.api_path, body=json.dumps(payload), headers=headers)
+            response = conn.getresponse()
+            if response.status != 201:
+                print(f"Failed to send heartbeat: {response.read().decode()}")
             else:
-                print(f"Heartbeat sent successfully: {response.status_code}")
-        except requests.RequestException as e:
+                print(f"Heartbeat sent successfully: {response.status}")
+            conn.close()
+        except Exception as e:
             print(f"Error sending heartbeat: {str(e)}")
 
 
