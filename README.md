@@ -13,9 +13,9 @@ You can navigate there directly via **File Explorer**.
 The folder structure should look like this:  
 `AddIns > Wakatime for Fusion > (files)`
 
-### 3. Install Dependencies
+### 3. Install Dependencies THIS DOESN'T WORK ATM, FIX COMING ASAP
+
 Open **Windows PowerShell** and run the following command (ensure the quotation marks are included):  
-THIS DOESN'T WORK ATM, FIX COMING ASAP
 `& "$($env:LOCALAPPDATA)\Autodesk\webdeploy\production\13b1dce62fc3204647ade625f7b4cb3f8d542a09\Python\python.exe" -m pip install requests`
 
 
