@@ -1,9 +1,10 @@
+# & "$($env:LOCALAPPDATA)\Autodesk\webdeploy\production\13b1dce62fc3204647ade625f7b4cb3f8d542a09\Python\python.exe" -m pip install requests
 import os
 import time
 import requests
 import adsk.core, adsk.fusion, adsk.cam, traceback
 from configparser import ConfigParser
-import platform
+from platform import uname
 
 app = adsk.core.Application.get()
 ui = app.userInterface
@@ -41,6 +42,7 @@ class WakaTimeManager:
         """Begin tracking Fusion 360 activity."""
         if not self.api_key:
             print("No API key provided. Tracking cannot start.")
+            ui.messageBox("WakaTime could not start. API key is missing.")
             return
 
         self.is_tracking = True
@@ -48,6 +50,7 @@ class WakaTimeManager:
         # Check if there's an active document
         if app.activeDocument is None:
             print("No active document open.")
+            ui.messageBox("WakaTime started, but there is no active document.")
             return
 
         try:
@@ -68,58 +71,21 @@ class WakaTimeManager:
             self.command_created_handler = CommandEventHandler(self.on_command_created)
             ui.commandCreated.add(self.command_created_handler)  # Correct usage with the `ui` object
 
-            print("Tracking started.")  # Debugging
+            print("Tracking started.")
+            ui.messageBox("WakaTime tracking started!")  # Notify the user
 
             # Send test heartbeat
             self.send_test_heartbeat()
 
         except Exception as e:
             print(f"Error while starting tracking: {str(e)}")
-
-    def send_test_heartbeat(self):
-        """Send a test heartbeat with project and file information."""
-        os_info = platform.system()
-        language = "Fusion 360"
-        editor = "Fusion 360"
-        active_document = app.activeDocument
-        
-        #find current file and project
-        if active_document is None:
-            print("No active document found.")
-            return
-        file_name = active_document.name
-        project_name = self.get_project_name(active_document)
-
-        payload = {
-            "time": time.time(),
-            "entity": file_name,
-            "project": project_name,
-            "type": "file",
-            "category": "test_start",
-            "language": language,
-            "Editor": editor,
-            "os": os_info
-        }
-
-        headers = {
-            "Authorization": f"Basic {self.api_key}"
-        }
-
-        print(f"Preparing to send test heartbeat: {payload}")
-
-        try:
-            response = requests.post(self.api_url, json=payload, headers=headers)
-            if response.status_code != 201:
-                print(f"Failed to send test heartbeat: {response.text}")
-            else:
-                print(f"Test heartbeat sent successfully: {response.status_code}")
-        except requests.RequestException as e:
-            print(f"Error sending test heartbeat: {str(e)}")
+            ui.messageBox(f"Error starting WakaTime tracking: {str(e)}")
 
     def stop_tracking(self):
         """Stop tracking Fusion 360 activity."""
         self.is_tracking = False
-        print("Tracking stopped.")  # Debugging
+        print("Tracking stopped.")
+        ui.messageBox("WakaTime tracking stopped.")  # Notify the user
 
         # Remove event handlers when stopping
         try:
@@ -144,9 +110,49 @@ class WakaTimeManager:
                 ui.commandCreated.remove(self.command_created_handler)
                 self.command_created_handler = None
 
-            print("Event handlers removed successfully.")  # Debugging
+            print("Event handlers removed successfully.")
         except Exception as e:
             print(f"Error while removing event handlers: {str(e)}")
+
+    def send_test_heartbeat(self):
+        """Send a test heartbeat with project and file information."""
+        host = uname()
+        language = "Fusion 360"
+        editor = "Fusion 360"
+        active_document = app.activeDocument
+        
+        #find current file and project
+        if active_document is None:
+            print("No active document found.")
+            return
+        file_name = active_document.name
+        project_name = self.get_project_name(active_document)
+
+        payload = {
+            "time": time.time(),
+            "entity": file_name,
+            "project": project_name,
+            "type": "file",
+            "category": "test_start",
+            "language": language,
+            "Editor": editor,
+            "operating_system": host.system
+        }
+
+        headers = {
+            "Authorization": f"Basic {self.api_key}"
+        }
+
+        print(f"Preparing to send test heartbeat: {payload}")
+
+        try:
+            response = requests.post(self.api_url, json=payload, headers=headers)
+            if response.status_code != 201:
+                print(f"Failed to send test heartbeat: {response.text}")
+            else:
+                print(f"Test heartbeat sent successfully: {response.status_code}")
+        except requests.RequestException as e:
+            print(f"Error sending test heartbeat: {str(e)}")
 
     def on_file_opened(self, args):
         """Handle file opened event."""
@@ -229,7 +235,7 @@ class WakaTimeManager:
 
     def send_heartbeat(self, project_name, entity_name, action_type, extra_info=None):
         """Send activity data to WakaTime."""
-        os_info = platform.system()
+        host = uname()
         language = "Fusion 360"
         editor = "Fusion 360"
         active_document = app.activeDocument
@@ -241,10 +247,8 @@ class WakaTimeManager:
         file_name = active_document.name
         project_name = self.get_project_name(active_document)
         
-        # Debugging print statement with more detailed info
-        print(f"Preparing to send heartbeat: {{'time': {time.time()}, 'entity': '{file_name}', 'project': '{project_name}', 'type': 'file', 'category': '{action_type}', 'language': '{language}', 'Editor': '{editor}', 'os': '{os_info}'}}")
+        print(f"Preparing to send heartbeat: {{'time': {time.time()}, 'entity': '{file_name}', 'project': '{project_name}', 'type': 'file', 'category': '{action_type}', 'language': '{language}', 'Editor': '{editor}', 'os': '{host.system}'}}")
 
-        # Construct the payload with more detailed information
         payload = {
             "time": time.time(),
             "entity": file_name,
@@ -253,11 +257,11 @@ class WakaTimeManager:
             "category": action_type,
             "Language": language,
             "Editor": editor,
-            "OperatingSystem": os_info
+            "operating_system": host.system
         }
 
         if extra_info:
-            payload.update(extra_info)  # Update with additional details like action
+            payload.update(extra_info)
 
         headers = {
             "Authorization": f"Basic {self.api_key}"
@@ -303,9 +307,9 @@ def run(context):
     try:
         # Initialize WakaTime manager
         waka_manager = WakaTimeManager()
-        waka_manager.start_tracking()  # Start tracking Fusion 360 activity
+        waka_manager.start_tracking()
 
     except Exception as e:
         print(f"Error: {str(e)}")
         if waka_manager:
-            waka_manager.stop_tracking()  # Ensure we stop tracking on error
+            waka_manager.stop_tracking()
