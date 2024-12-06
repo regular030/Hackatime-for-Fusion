@@ -17,6 +17,7 @@ class WakaTimeManager:
         self.document_saved_handler = None
         self.document_activated_handler = None
         self.document_deactivated_handler = None
+        self.command_created_handler = None  # Track command created event handler
 
     def load_api_key(self):
         """Load the API key from the .wakatime.cfg file."""
@@ -62,12 +63,9 @@ class WakaTimeManager:
             self.document_deactivated_handler = DocumentEventHandler(self.on_document_deactivated)
             app.documentDeactivated.add(self.document_deactivated_handler)
 
-                        # Track user commands
-            self.command_started_handler = CommandEventHandler(self.on_command_started)
-            app.commandStarting.add(self.command_started_handler)
-
-            self.command_terminated_handler = CommandEventHandler(self.on_command_terminated)
-            app.commandTerminated.add(self.command_terminated_handler)
+            # Correctly add the commandCreated event handler to `ui.commandCreated`
+            self.command_created_handler = CommandEventHandler(self.on_command_created)
+            ui.commandCreated.add(self.command_created_handler)  # Correct usage with the `ui` object
 
             print("Tracking started.")  # Debugging
         except Exception as e:
@@ -95,6 +93,11 @@ class WakaTimeManager:
             if self.document_deactivated_handler:
                 app.documentDeactivated.remove(self.document_deactivated_handler)
                 self.document_deactivated_handler = None
+
+            # Remove the commandCreated event handler correctly
+            if self.command_created_handler:
+                ui.commandCreated.remove(self.command_created_handler)
+                self.command_created_handler = None
 
             print("Event handlers removed successfully.")  # Debugging
         except Exception as e:
@@ -140,6 +143,26 @@ class WakaTimeManager:
         print(f"Project Name: {project_name}, File Name: {file_name}")  # Debugging
         self.send_heartbeat(project_name, file_name, "document_deactivated", extra_info={"action": "deactivate"})
 
+    def on_command_created(self, args):
+        """Handle command created event."""
+        if not self.is_tracking or not self.api_key:
+            return
+
+        try:
+            # Log the available attributes in args to help debug
+            print(f"Event Args: {dir(args)}")
+
+            # Check if 'commandDefinition' exists
+            if hasattr(args, 'commandDefinition'):
+                command_definition = args.commandDefinition
+                print(f"Command Created: {command_definition.name}")  # Log command name
+                self.send_heartbeat("Fusion 360", command_definition.name, "command_created", extra_info={"action": "create"})
+            else:
+                print("No 'commandDefinition' attribute in ApplicationCommandEventArgs.")
+                print(f"Other available attributes in event args: {vars(args)}")
+        except Exception as e:
+            print(f"Error in on_command_created: {str(e)}")
+
     def get_project_name(self, document):
         """Get the project name from the document."""
         try:
@@ -153,7 +176,6 @@ class WakaTimeManager:
             project_name = "Unknown Project"
         return project_name
 
-    #Project data
     def send_heartbeat(self, project_name, entity_name, action_type, extra_info=None):
         """Send activity data to WakaTime."""
         print(f"Sending Heartbeat: Project - {project_name}, File - {entity_name}, Action - {action_type}")  # Debugging
@@ -183,10 +205,21 @@ class WakaTimeManager:
             print(f"Error sending heartbeat: {str(e)}")
 
 
-# Fusion 360 event handling
 class DocumentEventHandler(adsk.core.DocumentEventHandler):
     """Custom event handler for document events."""
-    
+
+    def __init__(self, handler_function):
+        super().__init__()
+        self.handler_function = handler_function
+
+    def notify(self, args):
+        """Notify the event handler."""
+        self.handler_function(args)
+
+
+class CommandEventHandler(adsk.core.ApplicationCommandEventHandler):
+    """Custom event handler for command created events."""
+
     def __init__(self, handler_function):
         super().__init__()
         self.handler_function = handler_function
@@ -209,23 +242,15 @@ def run(context):
             return
 
         # Start tracking
-        print(f"API Key Loaded: {waka_manager.api_key}")  # Debugging: Log the API key
         waka_manager.start_tracking()
+        ui.messageBox("WakaTime Add-in started.")
     except Exception as e:
-        if ui:
-            ui.messageBox(f"Failed to start WakaTime Add-In:\n{str(e)}\n{traceback.format_exc()}")
+        print(f"Failed to run the WakaTime add-in: {str(e)}")
+        ui.messageBox(f"Failed to run the WakaTime add-in: {str(e)}")
+
 
 def stop(context):
+    """Stop the tracking and remove event handlers."""
     global waka_manager
-    try:
-        # Stop tracking only if the manager is initialized
-        if waka_manager:
-            waka_manager.stop_tracking()
-            waka_manager = None
-
-        # Notify the user that tracking has stopped
-        ui.messageBox("WakaTime Add-In has stopped.")
-        print("WakaTime Add-In has stopped.")  # Debugging
-    except Exception as e:
-        if ui:
-            ui.messageBox(f"Failed to stop WakaTime Add-In:\n{str(e)}\n{traceback.format_exc()}")
+    if waka_manager:
+        waka_manager.stop_tracking()
