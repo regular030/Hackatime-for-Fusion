@@ -3,6 +3,7 @@ import time
 import requests
 import adsk.core, adsk.fusion, adsk.cam, traceback
 from configparser import ConfigParser
+import platform
 
 app = adsk.core.Application.get()
 ui = app.userInterface
@@ -26,7 +27,7 @@ class WakaTimeManager:
         if not os.path.exists(config_file):
             print(f"Config file not found: {config_file}")
             return None
-        
+       
         config = ConfigParser()
         config.read(config_file)
 
@@ -68,8 +69,52 @@ class WakaTimeManager:
             ui.commandCreated.add(self.command_created_handler)  # Correct usage with the `ui` object
 
             print("Tracking started.")  # Debugging
+
+            # Send test heartbeat
+            self.send_test_heartbeat()
+
         except Exception as e:
             print(f"Error while starting tracking: {str(e)}")
+
+    def send_test_heartbeat(self):
+        """Send a test heartbeat with project and file information."""
+        os_info = platform.system()
+        language = "Fusion 360"
+        editor = "Fusion 360"
+        active_document = app.activeDocument
+        
+        #find current file and project
+        if active_document is None:
+            print("No active document found.")
+            return
+        file_name = active_document.name
+        project_name = self.get_project_name(active_document)
+
+        payload = {
+            "time": time.time(),
+            "entity": file_name,
+            "project": project_name,
+            "type": "file",
+            "category": "test_start",
+            "language": language,
+            "Editor": editor,
+            "os": os_info
+        }
+
+        headers = {
+            "Authorization": f"Basic {self.api_key}"
+        }
+
+        print(f"Preparing to send test heartbeat: {payload}")
+
+        try:
+            response = requests.post(self.api_url, json=payload, headers=headers)
+            if response.status_code != 201:
+                print(f"Failed to send test heartbeat: {response.text}")
+            else:
+                print(f"Test heartbeat sent successfully: {response.status_code}")
+        except requests.RequestException as e:
+            print(f"Error sending test heartbeat: {str(e)}")
 
     def stop_tracking(self):
         """Stop tracking Fusion 360 activity."""
@@ -109,9 +154,9 @@ class WakaTimeManager:
             return
         print(f"File Opened: {args.document.name}")  # Debugging
         project_name = self.get_project_name(args.document)
-        file_name = args.document.name
-        print(f"Project Name: {project_name}, File Name: {file_name}")  # Debugging
-        self.send_heartbeat(project_name, file_name, "file_opened", extra_info={"action": "open"})
+        entity_name = args.document.name  # Changed to entity_name for consistency
+        print(f"Project Name: {project_name}, Entity Name: {entity_name}")  # Debugging
+        self.send_heartbeat(project_name, entity_name, "file_opened", extra_info={"action": "open"})
 
     def on_file_saved(self, args):
         """Handle file saved event."""
@@ -119,9 +164,9 @@ class WakaTimeManager:
             return
         print(f"File Saved: {args.document.name}")  # Debugging
         project_name = self.get_project_name(args.document)
-        file_name = args.document.name
-        print(f"Project Name: {project_name}, File Name: {file_name}")  # Debugging
-        self.send_heartbeat(project_name, file_name, "file_saved", extra_info={"action": "save"})
+        entity_name = args.document.name  # Changed to entity_name for consistency
+        print(f"Project Name: {project_name}, Entity Name: {entity_name}")  # Debugging
+        self.send_heartbeat(project_name, entity_name, "file_saved", extra_info={"action": "save"})
 
     def on_document_activated(self, args):
         """Handle document activated event."""
@@ -129,9 +174,9 @@ class WakaTimeManager:
             return
         print(f"Document Activated: {args.document.name}")  # Debugging
         project_name = self.get_project_name(args.document)
-        file_name = args.document.name
-        print(f"Project Name: {project_name}, File Name: {file_name}")  # Debugging
-        self.send_heartbeat(project_name, file_name, "document_activated", extra_info={"action": "activate"})
+        entity_name = args.document.name  # Changed to entity_name for consistency
+        print(f"Project Name: {project_name}, Entity Name: {entity_name}")  # Debugging
+        self.send_heartbeat(project_name, entity_name, "document_activated", extra_info={"action": "activate"})
 
     def on_document_deactivated(self, args):
         """Handle document deactivated event."""
@@ -139,9 +184,9 @@ class WakaTimeManager:
             return
         print(f"Document Deactivated: {args.document.name}")  # Debugging
         project_name = self.get_project_name(args.document)
-        file_name = args.document.name
-        print(f"Project Name: {project_name}, File Name: {file_name}")  # Debugging
-        self.send_heartbeat(project_name, file_name, "document_deactivated", extra_info={"action": "deactivate"})
+        entity_name = args.document.name  # Changed to entity_name for consistency
+        print(f"Project Name: {project_name}, Entity Name: {entity_name}")  # Debugging
+        self.send_heartbeat(project_name, entity_name, "document_deactivated", extra_info={"action": "deactivate"})
 
     def on_command_created(self, args):
         """Handle command created event."""
@@ -156,7 +201,13 @@ class WakaTimeManager:
             if hasattr(args, 'commandDefinition'):
                 command_definition = args.commandDefinition
                 print(f"Command Created: {command_definition.name}")  # Log command name
-                self.send_heartbeat("Fusion 360", command_definition.name, "command_created", extra_info={"action": "create"})
+
+                project_name = "Fusion 360"  # Get the project name
+                entity_name = command_definition.name  # Changed to entity_name for consistency
+
+                # Add extra info such as the action type
+                extra_info = {"action": "create"}
+                self.send_heartbeat(project_name, entity_name, "command_created", extra_info=extra_info)
             else:
                 print("No 'commandDefinition' attribute in ApplicationCommandEventArgs.")
                 print(f"Other available attributes in event args: {vars(args)}")
@@ -178,18 +229,35 @@ class WakaTimeManager:
 
     def send_heartbeat(self, project_name, entity_name, action_type, extra_info=None):
         """Send activity data to WakaTime."""
-        print(f"Sending Heartbeat: Project - {project_name}, File - {entity_name}, Action - {action_type}")  # Debugging
+        os_info = platform.system()
+        language = "Fusion 360"
+        editor = "Fusion 360"
+        active_document = app.activeDocument
+        
+        #find current file and project
+        if active_document is None:
+            print("No active document found.")
+            return
+        file_name = active_document.name
+        project_name = self.get_project_name(active_document)
+        
+        # Debugging print statement with more detailed info
+        print(f"Preparing to send heartbeat: {{'time': {time.time()}, 'entity': '{file_name}', 'project': '{project_name}', 'type': 'file', 'category': '{action_type}', 'language': '{language}', 'Editor': '{editor}', 'os': '{os_info}'}}")
+
+        # Construct the payload with more detailed information
         payload = {
             "time": time.time(),
-            "entity": entity_name,
+            "entity": file_name,
             "project": project_name,
             "type": "file",
             "category": action_type,
-            "language": "Fusion 360",
+            "language": language,
+            "Editor": editor,
+            "os": os_info
         }
 
         if extra_info:
-            payload.update(extra_info)
+            payload.update(extra_info)  # Update with additional details like action
 
         headers = {
             "Authorization": f"Basic {self.api_key}"
@@ -200,7 +268,7 @@ class WakaTimeManager:
             if response.status_code != 201:
                 print(f"Failed to send heartbeat: {response.text}")
             else:
-                print(f"Heartbeat sent successfully: {response.status_code}")  # Debugging
+                print(f"Heartbeat sent successfully: {response.status_code}")
         except requests.RequestException as e:
             print(f"Error sending heartbeat: {str(e)}")
 
@@ -228,7 +296,6 @@ class CommandEventHandler(adsk.core.ApplicationCommandEventHandler):
         """Notify the event handler."""
         self.handler_function(args)
 
-
 waka_manager = None
 
 def run(context):
@@ -236,21 +303,9 @@ def run(context):
     try:
         # Initialize WakaTime manager
         waka_manager = WakaTimeManager()
+        waka_manager.start_tracking()  # Start tracking Fusion 360 activity
 
-        if not waka_manager.api_key:
-            print("Failed to load API key.")
-            return
-
-        # Start tracking
-        waka_manager.start_tracking()
-        ui.messageBox("WakaTime Add-in started.")
     except Exception as e:
-        print(f"Failed to run the WakaTime add-in: {str(e)}")
-        ui.messageBox(f"Failed to run the WakaTime add-in: {str(e)}")
-
-
-def stop(context):
-    """Stop the tracking and remove event handlers."""
-    global waka_manager
-    if waka_manager:
-        waka_manager.stop_tracking()
+        print(f"Error: {str(e)}")
+        if waka_manager:
+            waka_manager.stop_tracking()  # Ensure we stop tracking on error
