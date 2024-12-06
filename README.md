@@ -28,6 +28,7 @@ Open Autodesk **Fusion 360**.
 Press `Shift + S` to open the **Scripts and Add-ins** menu in Fusion 360.  
 In the menu, go to the **Add-ins** tab.  
 You should see **Wakatime for Fusion** listed there.  
+Check mark the **Run on Start**
 Click on **Run**.
 
 ### 6. Verify the Add-in is Running
