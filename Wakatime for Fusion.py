@@ -251,9 +251,9 @@ class WakaTimeManager:
             "project": project_name,
             "type": "file",
             "category": action_type,
-            "language": language,
+            "Language": language,
             "Editor": editor,
-            "os": os_info
+            "OperatingSystem": os_info
         }
 
         if extra_info:
