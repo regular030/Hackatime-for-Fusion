@@ -1,5 +1,5 @@
 # Wakatime Add-in for Fusion 360
-This add-in integrates Wakatime with Autodesk Fusion 360 to help track your design activity. Follow the steps below to install and use the add-in.
+This add-in integrates Wakatime with Autodesk Fusion 360 to help track your design activity. Follow the steps below to install and use the add-in. ATM only tested in Windows, it should work on Mac, not tested.
 
 ## How to Use the Wakatime Add-in for Fusion 360
 
@@ -13,13 +13,27 @@ You can navigate there directly via **File Explorer**.
 The folder structure should look like this:  
 `AddIns > Wakatime for Fusion > (files)`
 
-### 3. Install Dependencies THIS DOESN'T WORK ATM, FIX COMING ASAP
+### 3. Install Dependencies
 
-Open **Windows PowerShell** and run the following command (ensure the quotation marks are included):  
-`& "$($env:LOCALAPPDATA)\Autodesk\webdeploy\production\13b1dce62fc3204647ade625f7b4cb3f8d542a09\Python\python.exe" -m pip install requests`
+To install the required dependencies, follow these steps:
 
+1. **Navigate to the Production Folder:**
+   Open **File Explorer** and go to the following directory:  
+   `%LOCALAPPDATA%\Autodesk\webdeploy\production\`
 
-This will install the necessary dependencies for the add-in to function properly.
+2. **Locate the Python Folder:**
+   Inside the `production` folder, you'll find several subfolders. Look for the one containing a folder named `Python`. You can sort the folders by date to find the most recent one. The folder name will look like a random string of characters (e.g., `bce2902bbfcb27678033cbb9e17a3529631b97a7`).
+
+3. **Get the Folder Path:**
+   Once you find the correct folder, copy the random string from the folder path. For example, if your path is:  
+   `C:\Users\<user>\AppData\Local\Autodesk\webdeploy\production\bce2902bbfcb27678033cbb9e17a3529631b97a7\Python`
+
+   The random string would be something like:  
+   `bce2902bbfcb27678033cbb9e17a3529631b97a7`
+
+4. **Install the Requests Library:**
+   Open **Windows PowerShell** and run the following command (replace `<RGS>` with the random string you copied):
+   ` & "$($env:LOCALAPPDATA)\Autodesk\webdeploy\production\<RGS>\Python\python.exe" -m pip install requests ` 
 
 ### 4. Launch Fusion 360
 Open Autodesk **Fusion 360**.
