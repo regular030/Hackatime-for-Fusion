@@ -8,7 +8,7 @@ Download the ZIP file containing the add-in code.
 
 ### 2. Extract the Code
 Extract the contents of the ZIP file to the following directory on your system:  
-`%APPDATA%\Autodesk\Autodesk Fusion 360\API\AddIns\Wakatime for Fusion`  
+`%APPDATA%\Autodesk\Autodesk Fusion 360\API\AddIns`  
 You can navigate there directly via **File Explorer**.  
 The folder structure should look like this:  
 `AddIns > Wakatime for Fusion > (files)`
