@@ -11,7 +11,7 @@ Extract the contents of the ZIP file to the following directory on your system:
 `%APPDATA%\Autodesk\Autodesk Fusion 360\API\AddIns`  
 You can navigate there directly via **File Explorer**.  
 The folder structure should look like this:  
-`AddIns > Wakatime for Fusion > (files)`
+`AddIns > Hackatime-for-Fusion > (files)`
 
 ### 3. Launch Fusion
 Open Autodesk **Fusion**.
